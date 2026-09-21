@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const mysql = require('mysql2');
+const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -12,47 +12,68 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cle_secrete_defaut';
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-// Connexion MySQL compatible Cloud et Local
-const db = mysql.createConnection({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'restolome_db',
-  port: process.env.DB_PORT || 3306
-});
-
-db.connect((err) => {
+// Connexion à la base de données SQLite (crée un fichier database.sqlite automatiquement)
+const dbPath = path.resolve(__dirname, 'database.sqlite');
+const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
-    console.error('Erreur de connexion MySQL :', err);
-    return;
+    console.error('Erreur d\'ouverture de la base SQLite :', err.message);
+  } else {
+    console.log('Connecté à la base de données SQLite avec succès !');
+    initialiserTablesEtAdmin();
   }
-  console.log(`Connecté avec succès à la base MySQL (${process.env.DB_NAME || 'restolome_db'}) !`);
-  initialiserTableEtAdmin();
 });
 
-// Initialisation de la table et du compte admin par défaut
-function initialiserTableEtAdmin() {
-  const createTableQuery = `
-    CREATE TABLE IF NOT EXISTS utilisateurs (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      nom_utilisateur VARCHAR(50) NOT NULL UNIQUE,
-      mot_de_passe VARCHAR(255) NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `;
+// Initialisation des tables et du compte admin par défaut
+function initialiserTablesEtAdmin() {
+  db.serialize(() => {
+    // Table utilisateurs
+    db.run(`
+      CREATE TABLE IF NOT EXISTS utilisateurs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nom_utilisateur TEXT NOT NULL UNIQUE,
+        mot_de_passe TEXT NOT NULL
+      )
+    `);
 
-  db.query(createTableQuery, (err) => {
-    if (err) return;
+    // Table restaurants
+    db.run(`
+      CREATE TABLE IF NOT EXISTS restaurants (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nom TEXT NOT NULL,
+        quartier TEXT NOT NULL,
+        cuisine TEXT NOT NULL
+      )
+    `);
 
-    db.query('SELECT * FROM utilisateurs WHERE nom_utilisateur = ?', ['admin'], async (err, results) => {
-      if (err) return;
-      if (results.length === 0) {
+    // Table reservations
+    db.run(`
+      CREATE TABLE IF NOT EXISTS reservations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nom TEXT NOT NULL,
+        telephone TEXT NOT NULL,
+        restaurant TEXT NOT NULL,
+        date_reservation TEXT NOT NULL
+      )
+    `);
+
+    // Créer un admin par défaut si inexistant
+    db.get('SELECT * FROM utilisateurs WHERE nom_utilisateur = ?', ['admin'], async (err, row) => {
+      if (!row) {
         const hash = await bcrypt.hash('admin123', 10);
-        db.query(
-          'INSERT INTO utilisateurs (nom_utilisateur, mot_de_passe) VALUES (?, ?)',
-          ['admin', hash],
-          () => console.log('Compte administrateur créé par défaut : admin / admin123')
-        );
+        db.run('INSERT INTO utilisateurs (nom_utilisateur, mot_de_passe) VALUES (?, ?)', ['admin', hash]);
+        console.log('Compte administrateur par défaut créé : admin / admin123');
+      }
+    });
+
+    // Insérer quelques restaurants par défaut si la table est vide
+    db.get('SELECT COUNT(*) as count FROM restaurants', (err, row) => {
+      if (row && row.count === 0) {
+        db.run(`INSERT INTO restaurants (nom, quartier, cuisine) VALUES 
+          ('Le Chalet', 'Nyékonakpoè', 'Européenne / Grillades'),
+          ('La Pirogue', 'Kodjoviakopé', 'Africaine / Poissons'),
+          ('L''Abreuvoir', 'Tokoin', 'Internationale')
+        `);
+        console.log('Restaurants par défaut insérés.');
       }
     });
   });
@@ -87,15 +108,12 @@ app.post('/api/auth/login', (req, res) => {
     return res.status(400).json({ error: 'Veuillez remplir tous les champs.' });
   }
 
-  const query = 'SELECT * FROM utilisateurs WHERE nom_utilisateur = ?';
-  db.query(query, [nom_utilisateur], async (err, results) => {
-    if (err || results.length === 0) {
+  db.get('SELECT * FROM utilisateurs WHERE nom_utilisateur = ?', [nom_utilisateur], async (err, user) => {
+    if (err || !user) {
       return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect.' });
     }
 
-    const user = results[0];
     const match = await bcrypt.compare(mot_de_passe, user.mot_de_passe);
-
     if (!match) {
       return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect.' });
     }
@@ -116,9 +134,9 @@ app.post('/api/auth/login', (req, res) => {
 
 // Public : Liste des restaurants
 app.get('/api/restaurants', (req, res) => {
-  db.query('SELECT * FROM restaurants', (err, results) => {
+  db.all('SELECT * FROM restaurants', (err, rows) => {
     if (err) return res.status(500).json({ error: 'Erreur serveur.' });
-    res.json(results);
+    res.json(rows);
   });
 });
 
@@ -130,26 +148,26 @@ app.post('/api/reservations', (req, res) => {
   }
 
   const query = 'INSERT INTO reservations (nom, telephone, restaurant, date_reservation) VALUES (?, ?, ?, ?)';
-  db.query(query, [nom, telephone, restaurant, date_reservation], (err, result) => {
+  db.run(query, [nom, telephone, restaurant, date_reservation], function(err) {
     if (err) return res.status(500).json({ error: 'Erreur d\'enregistrement.' });
-    res.json({ message: 'Réservation enregistrée avec succès !', id: result.insertId });
+    res.json({ message: 'Réservation enregistrée avec succès !', id: this.lastID });
   });
 });
 
 // Sécurisé : Voir toutes les réservations
 app.get('/api/reservations', verifierToken, (req, res) => {
-  db.query('SELECT * FROM reservations ORDER BY id DESC', (err, results) => {
+  db.all('SELECT * FROM reservations ORDER BY id DESC', (err, rows) => {
     if (err) return res.status(500).json({ error: 'Erreur serveur.' });
-    res.json(results);
+    res.json(rows);
   });
 });
 
 // Sécurisé : Annuler une réservation
 app.delete('/api/reservations/:id', verifierToken, (req, res) => {
   const query = 'DELETE FROM reservations WHERE id = ?';
-  db.query(query, [req.params.id], (err, result) => {
+  db.run(query, [req.params.id], function(err) {
     if (err) return res.status(500).json({ error: 'Erreur de suppression.' });
-    if (result.affectedRows === 0) return res.status(404).json({ error: 'Réservation introuvable.' });
+    if (this.changes === 0) return res.status(404).json({ error: 'Réservation introuvable.' });
     res.json({ message: `Réservation #${req.params.id} annulée.` });
   });
 });
