@@ -3,117 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RestoLomé - Connexion Admin</title>
-    <link rel="stylesheet" href="style.css">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f6f9;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-        .login-card {
-            background: #ffffff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 360px;
-        }
-        .login-card h2 {
-            margin-bottom: 20px;
-            color: #2c3e50;
-            text-align: center;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: #333;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        .btn-submit {
-            width: 100%;
-            padding: 10px;
-            background-color: #2c3e50;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .btn-submit:hover {
-            background-color: #1a252f;
-        }
-        .error-message {
-            color: #e74c3c;
-            background: #fde8e8;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            font-size: 0.9rem;
-            display: none;
-        }
-    </style>
+    <title>Administration - RestoLomé</title>
+    <!-- Bootstrap CSS pour un design propre -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
+<body class="bg-light">
 
-    <div class="login-card">
-        <h2>Espace Admin</h2>
-        <div id="errorMessage" class="error-message"></div>
-        <form id="loginForm">
-            <div class="form-group">
-                <label for="username">Identifiant</label>
-                <input type="text" id="username" required autocomplete="username">
+    <div class="container my-5">
+        <!-- Contenu affiché seulement si connecté -->
+        <div id="adminContent" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Administration - RestoLomé</h2>
+                <button id="btnDeconnexion" class="btn btn-danger">Se déconnecter</button>
             </div>
-            <div class="form-group">
-                <label for="password">Mot de passe</label>
-                <input type="password" id="password" required autocomplete="current-password">
+
+            <!-- Formulaire d'ajout de restaurant -->
+            <div class="card p-4 shadow-sm bg-white rounded mb-5">
+                <h4 class="mb-3">Ajouter un nouveau restaurant</h4>
+                <form id="formAjoutRestaurant">
+                    <div class="mb-3">
+                        <label for="nomResto" class="form-label">Nom du restaurant</label>
+                        <input type="text" class="form-control" id="nomResto" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="quartierResto" class="form-label">Quartier</label>
+                        <input type="text" class="form-control" id="quartierResto" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cuisineResto" class="form-label">Type de cuisine</label>
+                        <input type="text" class="form-control" id="cuisineResto" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Enregistrer le restaurant</button>
+                </form>
             </div>
-            <button type="submit" class="btn-submit">Se connecter</button>
-        </form>
+
+            <!-- Section de gestion des réservations -->
+            <div class="card p-4 shadow-sm bg-white rounded">
+                <h4 class="mb-3">Liste des réservations clients</h4>
+                <div id="listeReservations">
+                    <p class="text-muted">Chargement des réservations...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message d'alerte si non connecté -->
+        <div id="authError" class="alert alert-danger text-center mt-5" style="display: none;">
+            <h4>Accès refusé</h4>
+            <p>Vous n'êtes pas connecté ou votre session a expiré.</p>
+            <a href="login.html" class="btn btn-primary mt-2">Aller à la page de connexion</a>
+        </div>
     </div>
 
+    <!-- Script JavaScript -->
     <script>
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const nom_utilisateur = document.getElementById('username').value;
-            const mot_de_passe = document.getElementById('password').value;
-            const errorElement = document.getElementById('errorMessage');
+        // 1. Vérification sécurisée du token au chargement
+        const token = localStorage.getItem('token');
 
-            try {
-                const response = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nom_utilisateur, mot_de_passe })
-                });
+        if (!token) {
+            // Si pas de token, on affiche le message d'erreur au lieu de rediriger en boucle
+            document.getElementById('authError').style.display = 'block';
+        } else {
+            // Si le token existe, on affiche le contenu admin
+            document.getElementById('adminContent').style.display = 'block';
+        }
 
-                const data = await response.json();
+        // 2. Gestion de la déconnexion
+        const btnDeconnexion = document.getElementById('btnDeconnexion');
+        if (btnDeconnexion) {
+            btnDeconnexion.addEventListener('click', () => {
+                localStorage.removeItem('token');
+                window.location.href = 'login.html';
+            });
+        }
 
-                if (response.ok) {
-                    localStorage.setItem('resto_token', data.token);
-                    window.location.href = '/admin.html';
-                } else {
-                    errorElement.innerText = data.error || 'Erreur de connexion';
-                    errorElement.style.display = 'block';
+        // 3. Soumission du formulaire d'ajout de restaurant
+        const formAjout = document.getElementById('formAjoutRestaurant');
+        if (formAjout) {
+            formAjout.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const nom = document.getElementById('nomResto').value;
+                const quartier = document.getElementById('quartierResto').value;
+                const cuisine = document.getElementById('cuisineResto').value;
+
+                try {
+                    const response = await fetch('/api/restaurants', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ nom, quartier, cuisine })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        alert(data.message);
+                        formAjout.reset();
+                    } else {
+                        if (response.status === 401 || response.status === 403) {
+                            alert("Votre session a expiré. Veuillez vous reconnecter.");
+                            localStorage.removeItem('token');
+                            window.location.href = 'login.html';
+                        } else {
+                            alert("Erreur : " + (data.error || data.erreur));
+                        }
+                    }
+                } catch (error) {
+                    console.error("Erreur réseau :", error);
+                    alert("Impossible de joindre le serveur.");
                 }
-            } catch (err) {
-                errorElement.innerText = 'Impossible de contacter le serveur';
-                errorElement.style.display = 'block';
-            }
-        });
+            });
+        }
     </script>
 </body>
 </html>
