@@ -39,26 +39,26 @@
         <div class="card p-4 shadow-sm bg-white rounded">
             <h4 class="mb-3">Liste des réservations clients</h4>
             <div id="listeReservations">
-                <!-- Les réservations s'afficheront ici -->
+                <p class="text-muted">Chargement des réservations...</p>
             </div>
         </div>
     </div>
 
     <!-- Script JavaScript -->
     <script>
-        // Vérification de la présence du token au chargement
+        // 1. Vérification sécurisée du token au chargement
         const token = localStorage.getItem('token');
         if (!token) {
-            window.location.href = 'login.html';
+            window.location.replace('login.html');
         }
 
-        // Gestion de la déconnexion
+        // 2. Gestion de la déconnexion
         document.getElementById('btnDeconnexion').addEventListener('click', () => {
             localStorage.removeItem('token');
-            window.location.href = 'login.html';
+            window.location.replace('login.html');
         });
 
-        // Soumission du formulaire d'ajout de restaurant
+        // 3. Soumission du formulaire d'ajout de restaurant
         document.getElementById('formAjoutRestaurant').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -82,7 +82,13 @@
                     alert(data.message);
                     document.getElementById('formAjoutRestaurant').reset();
                 } else {
-                    alert("Erreur : " + (data.error || data.erreur));
+                    if (response.status === 401 || response.status === 403) {
+                        alert("Votre session a expiré. Veuillez vous reconnecter.");
+                        localStorage.removeItem('token');
+                        window.location.replace('login.html');
+                    } else {
+                        alert("Erreur : " + (data.error || data.erreur));
+                    }
                 }
             } catch (error) {
                 console.error("Erreur réseau :", error);
