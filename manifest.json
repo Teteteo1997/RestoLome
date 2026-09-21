@@ -1,0 +1,16 @@
+{
+  "short_name": "RestoLomé",
+  "name": "RestoLomé - Réservation de tables",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3448/3448650.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#f4f6f9",
+  "theme_color": "#e63946",
+  "display": "standalone",
+  "orientation": "portrait"
+}

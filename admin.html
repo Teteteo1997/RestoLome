@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RestoLomé - Dashboard Admin</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
+    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+    th { background-color: #e63946; color: white; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+    .btn-supprimer {
+      background-color: #e63946;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-supprimer:hover {
+      background-color: #c1121f;
+    }
+  </style>
+</head>
+<body>
+
+  <header style="background: #1d3557; color: white; padding: 15px; text-align: center;">
+    <h1>RestoLomé - Panneau d'Administration</h1>
+    <p>Gestion des réservations clients enregistrées dans MySQL</p>
+  </header>
+
+  <main style="max-width: 1000px; margin: 30px auto; padding: 0 15px;">
+    
+    <section style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>Toutes les Réservations</h2>
+        <button onclick="chargerReservations()" style="padding: 8px 15px; background: #457b9d; color: white; border: none; border-radius: 4px; cursor: pointer;">Actualiser</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Client</th>
+            <th>Téléphone</th>
+            <th>Restaurant</th>
+            <th>Date & Heure</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="tableau-reservations">
+          <!-- Chargé dynamiquement via script.js -->
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RestoLomé - Réservation de tables</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+  <header>
+    <h1>RestoLomé</h1>
+    <p>Réservez une table dans les meilleurs restaurants de Lomé</p>
+  </header>
+
+  <main style="max-width: 800px; margin: 20px auto; padding: 0 15px;">
+    
+    <!-- Section Liste des restaurants -->
+    <section>
+      <h2>Nos Restaurants Partenaires</h2>
+      <div id="liste-restaurants"></div>
+    </section>
+
+    <!-- Section Formulaire de Réservation -->
+    <section style="margin-top: 30px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+      <h2>Faire une Réservation</h2>
+      <form id="form-reservation">
+        <label for="nom" style="display:block; margin-top:10px; font-weight:bold;">Nom complet :</label>
+        <input type="text" id="nom" placeholder="Votre nom" required style="display:block; margin-bottom:10px; width:100%; padding:8px; box-sizing:border-box;">
+
+        <label for="telephone" style="display:block; margin-top:10px; font-weight:bold;">Téléphone :</label>
+        <input type="text" id="telephone" placeholder="Ex: 90000000" required style="display:block; margin-bottom:10px; width:100%; padding:8px; box-sizing:border-box;">
+
+        <label for="restaurant" style="display:block; margin-top:10px; font-weight:bold;">Restaurant :</label>
+        <select id="restaurant" required style="display:block; margin-bottom:10px; width:100%; padding:8px; box-sizing:border-box;">
+          <option value="">-- Sélectionnez un restaurant --</option>
+          <option value="Le Chalet">Le Chalet</option>
+          <option value="La Pirogue">La Pirogue</option>
+          <option value="L'Abreuvoir">L'Abreuvoir</option>
+        </select>
+
+        <label for="date_reservation" style="display:block; margin-top:10px; font-weight:bold;">Date et Heure :</label>
+        <input type="datetime-local" id="date_reservation" required style="display:block; margin-bottom:15px; width:100%; padding:8px; box-sizing:border-box;">
+
+        <button type="submit" style="background:#e63946; color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer; width:100%; font-size:16px;">Réserver ma table</button>
+      </form>
+      <p id="message-statut" style="margin-top:15px; font-weight:bold;"></p>
+    </section>
+
+  </main>
+
+  <script src="script.js"></script>
+  <script>
+    /* Service Worker désactivé en dev pour éviter tout conflit de cache */
+    /*
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+    */
+  </script>
+</body>
+</html>
