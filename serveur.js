@@ -171,7 +171,27 @@ app.delete('/api/reservations/:id', verifierToken, (req, res) => {
     res.json({ message: `Réservation #${req.params.id} annulée.` });
   });
 });
+// Route pour ajouter un nouveau restaurant (Réservée à l'admin)
+app.post('/api/restaurants', verifierToken, (req, res) => {
+    const { nom, quartier, cuisine } = req.body;
 
+    if (!nom || !quartier || !cuisine) {
+        return res.status(400).json({ error: "Tous les champs sont obligatoires." });
+    }
+
+    const query = `INSERT INTO restaurants (nom, quartier, cuisine) VALUES (?, ?, ?)`;
+    db.run(query, [nom, quartier, cuisine], function(err) {
+        if (err) {
+            console.error("Erreur lors de l'ajout du restaurant :", err.message);
+            return res.status(500).json({ error: "Erreur interne du serveur." });
+        }
+        res.status(201).json({ 
+            message: "Restaurant ajouté avec succès !", 
+            id: this.lastID,
+            restaurant: { id: this.lastID, nom, quartier, cuisine }
+        });
+    });
+});
 app.listen(PORT, () => {
   console.log(`Serveur démarré sur le port ${PORT}`);
 });
