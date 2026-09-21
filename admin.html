@@ -10,37 +10,47 @@
 <body class="bg-light">
 
     <div class="container my-5">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Administration - RestoLomé</h2>
-            <button id="btnDeconnexion" class="btn btn-danger">Se déconnecter</button>
-        </div>
-
-        <!-- Formulaire d'ajout de restaurant -->
-        <div class="card p-4 shadow-sm bg-white rounded mb-5">
-            <h4 class="mb-3">Ajouter un nouveau restaurant</h4>
-            <form id="formAjoutRestaurant">
-                <div class="mb-3">
-                    <label for="nomResto" class="form-label">Nom du restaurant</label>
-                    <input type="text" class="form-control" id="nomResto" required>
-                </div>
-                <div class="mb-3">
-                    <label for="quartierResto" class="form-label">Quartier</label>
-                    <input type="text" class="form-control" id="quartierResto" required>
-                </div>
-                <div class="mb-3">
-                    <label for="cuisineResto" class="form-label">Type de cuisine</label>
-                    <input type="text" class="form-control" id="cuisineResto" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Enregistrer le restaurant</button>
-            </form>
-        </div>
-
-        <!-- Section de gestion des réservations -->
-        <div class="card p-4 shadow-sm bg-white rounded">
-            <h4 class="mb-3">Liste des réservations clients</h4>
-            <div id="listeReservations">
-                <p class="text-muted">Chargement des réservations...</p>
+        <!-- Contenu affiché seulement si connecté -->
+        <div id="adminContent" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Administration - RestoLomé</h2>
+                <button id="btnDeconnexion" class="btn btn-danger">Se déconnecter</button>
             </div>
+
+            <!-- Formulaire d'ajout de restaurant -->
+            <div class="card p-4 shadow-sm bg-white rounded mb-5">
+                <h4 class="mb-3">Ajouter un nouveau restaurant</h4>
+                <form id="formAjoutRestaurant">
+                    <div class="mb-3">
+                        <label for="nomResto" class="form-label">Nom du restaurant</label>
+                        <input type="text" class="form-control" id="nomResto" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="quartierResto" class="form-label">Quartier</label>
+                        <input type="text" class="form-control" id="quartierResto" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cuisineResto" class="form-label">Type de cuisine</label>
+                        <input type="text" class="form-control" id="cuisineResto" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Enregistrer le restaurant</button>
+                </form>
+            </div>
+
+            <!-- Section de gestion des réservations -->
+            <div class="card p-4 shadow-sm bg-white rounded">
+                <h4 class="mb-3">Liste des réservations clients</h4>
+                <div id="listeReservations">
+                    <p class="text-muted">Chargement des réservations...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message d'alerte si non connecté -->
+        <div id="authError" class="alert alert-danger text-center mt-5" style="display: none;">
+            <h4>Accès refusé</h4>
+            <p>Vous n'êtes pas connecté ou votre session a expiré.</p>
+            <a href="login.html" class="btn btn-primary mt-2">Aller à la page de connexion</a>
         </div>
     </div>
 
@@ -48,53 +58,64 @@
     <script>
         // 1. Vérification sécurisée du token au chargement
         const token = localStorage.getItem('token');
+
         if (!token) {
-            window.location.replace('login.html');
+            // Si pas de token, on affiche le message d'erreur au lieu de rediriger en boucle
+            document.getElementById('authError').style.display = 'block';
+        } else {
+            // Si le token existe, on affiche le contenu admin
+            document.getElementById('adminContent').style.display = 'block';
         }
 
         // 2. Gestion de la déconnexion
-        document.getElementById('btnDeconnexion').addEventListener('click', () => {
-            localStorage.removeItem('token');
-            window.location.replace('login.html');
-        });
+        const btnDeconnexion = document.getElementById('btnDeconnexion');
+        if (btnDeconnexion) {
+            btnDeconnexion.addEventListener('click', () => {
+                localStorage.removeItem('token');
+                window.location.href = 'login.html';
+            });
+        }
 
         // 3. Soumission du formulaire d'ajout de restaurant
-        document.getElementById('formAjoutRestaurant').addEventListener('submit', async function(e) {
-            e.preventDefault();
+        const formAjout = document.getElementById('formAjoutRestaurant');
+        if (formAjout) {
+            formAjout.addEventListener('submit', async function(e) {
+                e.preventDefault();
 
-            const nom = document.getElementById('nomResto').value;
-            const quartier = document.getElementById('quartierResto').value;
-            const cuisine = document.getElementById('cuisineResto').value;
+                const nom = document.getElementById('nomResto').value;
+                const quartier = document.getElementById('quartierResto').value;
+                const cuisine = document.getElementById('cuisineResto').value;
 
-            try {
-                const response = await fetch('/api/restaurants', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ nom, quartier, cuisine })
-                });
+                try {
+                    const response = await fetch('/api/restaurants', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ nom, quartier, cuisine })
+                    });
 
-                const data = await response.json();
+                    const data = await response.json();
 
-                if (response.ok) {
-                    alert(data.message);
-                    document.getElementById('formAjoutRestaurant').reset();
-                } else {
-                    if (response.status === 401 || response.status === 403) {
-                        alert("Votre session a expiré. Veuillez vous reconnecter.");
-                        localStorage.removeItem('token');
-                        window.location.replace('login.html');
+                    if (response.ok) {
+                        alert(data.message);
+                        formAjout.reset();
                     } else {
-                        alert("Erreur : " + (data.error || data.erreur));
+                        if (response.status === 401 || response.status === 403) {
+                            alert("Votre session a expiré. Veuillez vous reconnecter.");
+                            localStorage.removeItem('token');
+                            window.location.href = 'login.html';
+                        } else {
+                            alert("Erreur : " + (data.error || data.erreur));
+                        }
                     }
+                } catch (error) {
+                    console.error("Erreur réseau :", error);
+                    alert("Impossible de joindre le serveur.");
                 }
-            } catch (error) {
-                console.error("Erreur réseau :", error);
-                alert("Impossible de joindre le serveur.");
-            }
-        });
+            });
+        }
     </script>
 </body>
 </html>
